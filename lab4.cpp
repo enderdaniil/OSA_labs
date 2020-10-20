@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
+#include <vector>
 
 #define _CRT_SECURE_NO_WARNINGS
 
@@ -17,7 +19,7 @@ protected:
 public:
     DataBase() // default constructor
     {
-        length = 10;
+        length = 0;
         arr = new int[length];
     }
 
@@ -27,10 +29,13 @@ public:
         arr = new int[length];
     }
 
-    void AddElement(int value)
+    void AddElement(int value) // добавление элемнта в базу данных
     {
         int* bus = new int[length];
-        bus = arr;
+        for (int i = 0; i < length; i++)
+        {
+            bus[i] = arr[i];
+        }
 
         length++;
 
@@ -42,7 +47,7 @@ public:
         arr[length - 1] = value;
     }
 
-    int* GetDB()
+    int* GetDBData()
     {
         return arr;
     }
@@ -52,129 +57,51 @@ public:
         return length;
     }
 
-    // запись в файл массива структур
-    int SaveDB(string filename)
+    // запись в файл массива
+    void SaveDB(string filename)
     {
-        FILE* fp, * stream;
-        char* c;
+        ofstream outdata;
 
-        errno_t err;
-
-        // число записываемых байтов
-        int size = length * sizeof(int);
-
-        err = fopen_s(&fp, filename.c_str(), "wb");
-        // записываем количество структур
-        c = (char*)&length;
-        for (int i = 0; i < sizeof(int); i++)
-        {
-            putc(*c++, fp);
+        outdata.open(filename); // opens the file
+        if (!outdata) { // file couldn't be opened
+            cerr << "Error: file could not be opened" << endl;
         }
 
-        // посимвольно записываем в файл все структуры
-        c = (char*)arr;
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < length - 1; i++)
         {
-            putc(*c, fp);
-            c++;
+            outdata << arr[i] << ", ";
         }
-        fclose(fp);
-        return 0;
+        outdata << arr[length - 1];
+
+        outdata.close();
+
     }
 
-    int FindDBLength(string filename)
+    // загрузка из файла массива
+    void LoadDB(string filename)
     {
-        FILE* fp, * stream;
-        char* c;
-        int m = sizeof(int);
-        int n, i;
+        ifstream in(filename);
+        string line = "";
+        string number = "";
+        vector<int> numbers{};
 
-        errno_t err;
-
-        // выделяем память для количества данных
-        int* pti = (int*)malloc(m);
-
-        err = fopen_s(&fp, filename.c_str(), "r");
-
-        // считываем количество структур
-        c = (char*)pti;
-        while (m > 0)
+        while (getline(in, line))
         {
-            i = getc(fp);
-            if (i == EOF) break;
-            *c = i;
-            c++;
-            m--;
-        }
-        //получаем число элементов
-        n = *pti;
+            stringstream strStream(line);
+            while (getline(strStream, number, ','))
+            {
+                numbers.push_back(atoi(number.c_str()));
+            }
 
-        // выделяем память для считанного массива структур
-        int* ptr = (int*)malloc(n * sizeof(int));
-        c = (char*)ptr;
-        // после записи считываем посимвольно из файла
-        while ((i = getc(fp)) != EOF)
-        {
-            *c = i;
-            c++;
         }
 
-        free(pti);
-        free(ptr);
-        fclose(fp);
-        return n;
-    }
-
-    // загрузка из файла массива структур
-    int LoadDB(string filename)
-    {
-        FILE* fp, * stream;
-        char* c;
-        int m = sizeof(int);
-        int i;
-
-        errno_t err;
-
-        // выделяем память для количества данных
-        int* pti = (int*)malloc(m);
-
-        err = fopen_s(&fp, filename.c_str(), "r");
-
-        // считываем количество структур
-        c = (char*)pti;
-        while (m > 0)
-        {
-            i = getc(fp);
-            if (i == EOF) break;
-            *c = i;
-            c++;
-            m--;
-        }
-        //получаем число элементов
-        length = *pti;
-
-        // выделяем память для считанного массива структур
-        int* ptr = (int*)malloc(length * sizeof(int));
-        c = (char*)ptr;
-        // после записи считываем посимвольно из файла
-        while ((i = getc(fp)) != EOF)
-        {
-            *c = i;
-            c++;
-        }
-        // перебор загруженных элементов и вывод на консоль
-
+        length = numbers.size();
         arr = new int[length];
 
-        for (int k = 0; k < length; k++)
+        for (int i = 0; i < length; i++)
         {
-            arr[k] = int((ptr + k));
+            arr[i] = numbers[i];
         }
-
-        free(pti);
-        free(ptr);
-        fclose(fp);
-        return 0;
     }
 };
 
@@ -225,7 +152,7 @@ public:
         db = DataBase(0);
     }
 
-    Node* Search(int value)
+    Node* Search(int value) // поиск в дереве
     {
         Node* bus, * current;
         if (root != NULL)
@@ -251,11 +178,20 @@ public:
             }
             return bus;
         }
+        else
+        {
+            return new Node();
+        }
     }
 
-    void AddNode(int val)
+    DataBase GetDB() // получение базы данных хранения дерева
     {
-        Node* bus = Search(val);
+        return db;
+    }
+
+    void AddNode(int val) // добавление элемента в дерево
+    {
+        Node* last = Search(val);
         Node* newNode = new Node(val);
         if (root == NULL)
         {
@@ -266,28 +202,33 @@ public:
             newNode->value = val;
             newNode->left = NULL;
             newNode->right = NULL;
-            if (val < bus->value)
+            if (val < last->value)
             {
-                bus->left = newNode;
+                last->left = newNode;
             }
             else
             {
-                bus->right = newNode;
+                last->right = newNode;
             }
         }
         size++;
         db.AddElement(val);
     }
 
-    BinaryTree(string pathToFile)
+    BinaryTree(string pathToFile) // загрузка дерева из файла
     {
         db = DataBase();
         db.LoadDB(pathToFile);
 
-        size = db.GetLength();
-        int* arr = db.GetDB();
+        root = NULL;
+        size = 0;
+        way = "";
 
-        for (int i = 0; i < size; i++)
+        size = db.GetLength();
+        int* arr = db.GetDBData();
+
+        int s = db.GetLength();
+        for (int i = 0; i < s; i++)
         {
             AddNode(arr[i]);
         }
@@ -307,7 +248,6 @@ public:
             if (node->left != NULL)
             {
                 GetWay(node->left);
-                cout << node->value << " ";
                 way += to_string(node->value);
                 way += "; ";
             }
@@ -332,12 +272,12 @@ public:
         }
     }
 
-    void SaveTreeToFile(string path)
+    void SaveTreeToFile(string path) // сохранение дерева в файл
     {
         db.SaveDB(path);
     }
 
-    void SaveWayToFile(string path)
+    void SaveWayToFile(string path) // сохранения пути, по дереву в файл
     {
         if (way != "")
         {
@@ -356,7 +296,7 @@ public:
 
     }
 
-    void GetWayFromFile(string path)
+    void GetWayFromFile(string path) // получение пути по дереву из файла
     {
         string line;
         ifstream in(path);
@@ -370,25 +310,11 @@ public:
         in.close();
     }
 
-    string GetStringWay()
+    string GetStringWay() // возвращение string с путём
     {
         return way;
     }
 };
-
-void PrintFromFile(string path)
-{
-    string line;
-    ifstream in(path);
-    if (in.is_open())
-    {
-        while (getline(in, line))
-        {
-            cout << line << endl;
-        }
-    }
-    in.close();
-}
 
 string path0 = "D:\\qwe.txt";
 string path1 = "D:\\ttt.txt";
@@ -411,5 +337,22 @@ int main()
     binaryTree.GetWay(binaryTree.GetRoot());
     binaryTree.SaveWayToFile(path0);
 
-    PrintFromFile(path0);
+    cout << endl;
+    cout << endl;
+    cout << endl;
+
+    int* array1 =  binaryTree.GetDB().GetDBData();
+
+    for (int i = 0; i < binaryTree.GetDB().GetLength(); i++)
+    {
+        cout << array1[i] << " ";
+    }
+    cout << endl << binaryTree.GetDB().GetLength() << endl << endl;
+    cout << endl << binaryTree.GetDB().GetLength() << endl << endl;
+
+    binaryTree.SaveTreeToFile(path1);
+    BinaryTree newTree = BinaryTree(path1);
+    newTree.GetWay(newTree.GetRoot());
+    cout << newTree.GetStringWay();
+
 }
