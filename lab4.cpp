@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <limits.h>
 
 #define _CRT_SECURE_NO_WARNINGS
 
@@ -103,18 +104,66 @@ public:
             arr[i] = numbers[i];
         }
     }
+
+    bool Find(int a)
+    {
+        for (int i = 0; i < length; i++)
+        {
+            if (arr[i] == a)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void DeleteElement(int a)
+    {
+        vector<int> vec{};
+
+        for (int i = 0; i < length; i++)
+        {
+            if (arr[i] != a)
+            {
+                vec.push_back(arr[i]);
+            }
+        }
+
+        arr = new int[length - 1];
+        for (int i = 0; i < length - 1; i++)
+        {
+            arr[i] = vec[i];
+        }
+        length--;
+    }
+
+    void ShowDB()
+    {
+        cout << endl;
+        cout << endl;
+        cout << endl;
+        for (int i = 0; i < length; i++)
+        {
+            cout << arr[i] << " ";
+        }
+        cout << endl;
+        cout << endl;
+        cout << endl;
+    }
 };
 
 struct Node 
 {
     Node* left;
     Node* right;
+    Node* parent;
     int value;
 
     Node()
     {
         left = NULL;
         right = NULL;
+        parent = NULL;
         value = 0;
     }
 
@@ -122,11 +171,21 @@ struct Node
     {
         left = NULL;
         right = NULL;
+        parent = NULL;
         this->value = value;
     }
 
     Node(int value, Node* left, Node* right)
     {
+        parent = NULL;
+        this->left = left;
+        this->right = right;
+        this->value = value;
+    }
+
+    Node(int value, Node* left, Node* right, Node* parent)
+    {
+        this->parent = NULL;
         this->left = left;
         this->right = right;
         this->value = value;
@@ -142,6 +201,30 @@ protected:
     string way;
 
     DataBase db;
+
+    Node* Leftmost(Node* node)
+    {
+        if (node == NULL)
+        {
+            return NULL;
+        }
+        if (node->left != NULL) 
+        {
+            return Leftmost(node->left);
+        }
+        return node;
+    }
+    Node* Rightmost(Node* node) {
+        if (node == NULL)
+        {
+            return NULL;
+        }
+        if (node->right != NULL) 
+        {
+            return Rightmost(node->right);
+        }
+        return node;
+    }
 
 public:
     BinaryTree()
@@ -191,29 +274,102 @@ public:
 
     void AddNode(int val) // добавление элемента в дерево
     {
-        Node* last = Search(val);
-        Node* newNode = new Node(val);
-        if (root == NULL)
+        if (!db.Find(val))
         {
-            root = newNode;
-        }
-        else
-        {
-            newNode->value = val;
-            newNode->left = NULL;
-            newNode->right = NULL;
-            if (val < last->value)
+            Node* last = Search(val);
+            Node* newNode = new Node(val);
+            if (root == NULL)
             {
-                last->left = newNode;
+                root = newNode;
             }
             else
             {
-                last->right = newNode;
+                newNode->value = val;
+                newNode->left = NULL;
+                newNode->right = NULL;
+                if (val < last->value)
+                {
+                    last->left = newNode;
+                }
+                else
+                {
+                    last->right = newNode;
+                }
+                newNode->parent = last;
             }
+            size++;
+            db.AddElement(val);
         }
-        size++;
-        db.AddElement(val);
+        else
+        {
+            cout << "This element already exists!!!" << endl;
+        }
     }
+
+    void DeleteNodeFromTree(Node* node, int val)
+    {
+        if (db.Find(val))
+        {
+            if (node == NULL)
+            {
+                return;
+            }
+            if (val < node->value)
+            {
+                return DeleteNodeFromTree(node->left, val);
+            }
+            else if (val > node->value)
+            {
+                return DeleteNodeFromTree(node->right, val);
+            }
+            else
+            {
+                if (node->left == NULL && node->right == NULL)
+                {
+                    if (node->parent->left == node)
+                    {
+                        node->parent->left = NULL;
+                    }
+                    else
+                    {
+                        node->parent->right = NULL;
+                    }
+                    delete node;
+                }
+                else 
+                {
+                    Node* newNode = NULL;
+                    if (node->left != NULL)
+                    {
+                        newNode = Rightmost(node->left);
+                    }
+                    else
+                    {
+                        newNode = Leftmost(node->right);
+                    }
+                    if (node->parent->left == node)
+                    {
+                        node->parent->left = newNode;
+                    }
+                    else
+                    {
+                        node->parent->right = newNode;
+                    }
+                    newNode->parent = node->parent;
+                    newNode->right = node->right;
+                    newNode->left = node->left;
+
+                    delete node;
+                }
+            }
+            db.DeleteElement(val);
+        }
+        else
+        {
+            cout << "In the binary tree there is no such element!!!";
+        }
+    }
+
 
     BinaryTree(string pathToFile) // загрузка дерева из файла
     {
@@ -324,7 +480,6 @@ int main()
     BinaryTree binaryTree = BinaryTree();
 
     int arr[8] = {6, 9, -7, 4, 12, 0, 7, -30};
-
     for (int i = 0; i < 8; i++)
     {
         binaryTree.AddNode(arr[i]);
@@ -333,6 +488,9 @@ int main()
     cout << endl;
     cout << endl;
     cout << endl;
+    binaryTree.DeleteNodeFromTree(binaryTree.GetRoot(), -7);
+    binaryTree.GetDB().ShowDB();
+    cout << binaryTree.GetDB().GetLength();
 
     binaryTree.GetWay(binaryTree.GetRoot());
     binaryTree.SaveWayToFile(path0);
