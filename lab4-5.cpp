@@ -164,7 +164,7 @@ struct Node
         left = NULL;
         right = NULL;
         parent = NULL;
-        value = 0;
+        value = -99999;
     }
 
     Node(int value)
@@ -224,6 +224,33 @@ protected:
             return Rightmost(node->right);
         }
         return node;
+    }
+
+    void AddNodeStrict(int val) // добавление элемента в дерево
+    {
+        Node* last = Search(val);
+        Node* newNode = new Node(val);
+        if (root == NULL)
+        {
+            root = newNode;
+        }
+        else
+        {
+            newNode->value = val;
+            newNode->left = NULL;
+            newNode->right = NULL;
+            if (val < last->value)
+            {
+                last->left = newNode;
+            }
+            else
+            {
+                last->right = newNode;
+            }
+            newNode->parent = last;
+        }
+        size++;
+        db.AddElement(val);
     }
 
 public:
@@ -347,17 +374,18 @@ public:
                     {
                         newNode = Leftmost(node->right);
                     }
+
                     if (node->parent->left == node)
                     {
                         node->parent->left = newNode;
+                        newNode->right = node->right;
                     }
                     else
                     {
                         node->parent->right = newNode;
+                        newNode->left = node->left;
                     }
                     newNode->parent = node->parent;
-                    newNode->right = node->right;
-                    newNode->left = node->left;
 
                     delete node;
                 }
@@ -375,7 +403,7 @@ public:
     {
         db = DataBase();
         db.LoadDB(pathToFile);
-
+        db.ShowDB();
         root = NULL;
         size = 0;
         way = "";
@@ -385,8 +413,9 @@ public:
 
         int s = db.GetLength();
         for (int i = 0; i < s; i++)
-        {
-            AddNode(arr[i]);
+        { 
+            int a = db.GetDBData()[i];
+            AddNodeStrict(db.GetDBData()[i]);
         }
     }
 
